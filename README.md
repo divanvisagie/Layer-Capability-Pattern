@@ -11,7 +11,7 @@ User messages originate from an external interface or REPL, converted into a Req
 
 ```mermaid
 sequenceDiagram
-    participant U as User
+    actor U as User
     participant I as Interface
     participant M as Main
     participant H as Handler
