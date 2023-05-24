@@ -1,14 +1,13 @@
 # Layer-Capability Pattern
-A new design pattern for Extended Intelligence systems
+A new design pattern for Extended Intelligence Systems
 
-The Layer-Capability Pattern is a new design pattern for building Extended Intelligence systems. It is designed to be a simple, flexible, and scalable pattern that can be used to build systems where a user sends input to the system and expects an output. 
+The Layer-Capability Pattern is a fresh approach to constructing Extended Intelligence systems, with a focus on simplicity, flexibility, and scalability. It's particularly suitable for systems where a user provides input and anticipates an output.
 
-The system is based in the idea of Structured Intelligence. Large language models while currently very capable are still limited and probabalistic. By structuring the data and capabilities of the system, we can build a system that is more intelligent than the sum of its parts.
-
+The concept is rooted in the idea of Structured Intelligence. While large language models are indeed capable, their performance is probabilistic and they have their limitations. By structuring the data and capabilities of the system, we can build a system that exhibits more intelligence than the sum of its components.
 
 ## Overview
 
-User messages come from an external interface or repl and are converted to a `RequestMessage` and passed to a handler. The handler then passes the message through a series of layers that can either reject the message entirely or modify it and pass it to the next layer. The final layer is a capability selector, which selects the capability that should handle the message. The capability is then executed and a `ResponseMessage` is passed back through the layers and back to the handler which then sends the response back to the interface it came from.
+User messages originate from an external interface or REPL, converted into a RequestMessage, and are passed to a handler. The handler, in turn, sends the message through a series of layers. Each layer has the power to either reject the message entirely or alter it and forward it to the next layer. The final layer, a capability selector, chooses the capability to process the message. The selected capability is then executed, producing a ResponseMessage that is sent back through the layers, the handler, and eventually to the origin interface.
 
 ```mermaid
 sequenceDiagram
@@ -57,16 +56,16 @@ L --> H
 H -- ResponseMessage --> M
 ```
 
-## Principals
+## Principles
 
-**1. Request-Response Pattern (Universal message format):**
-All interactions with services in the system are based on a request-response model. Every service must be able to accept a `RequestMessage` and return a `ResponseMessage`.
+**1. Request-Response Pattern (Universal Message Format):**
+All interactions within the system abide by a request-response model. Every component, whether a layer or a capability must be able to accept a RequestMessage and return a ResponseMessage.
 
 **2. Capability Registration and Discovery:**
-Each service must be able to register itself with a central registry (like Askur), providing details about the capabilities it provides. The registry can then route `RequestMessage`s to the appropriate service based on its capabilities.
+Each capability must register itself with a central registry, providing details about its capabilities. This registry is then used by the capability selector layer to determine which capability is best suited to handle a given message.
 
 **3. Layered Pre and Post Processing:**
-Before messages are passed to the capabilities, they are passed through a series of layers. Each layer can either reject the message entirely or modify it and pass it to the next layer. This allows for things like security, like rejecting unregistered users, adding memory to the system by storing Request and Response messages or even doing pre-processing like converting the message to an embedding.
+Before RequestMessages reach the capabilities, they undergo a series of transformations through various layers. Each layer can either reject the message entirely or modify it and pass it to the next layer. This allows for things like security by rejecting unregistered users, adding memory to the system by storing Request and Response messages or even doing pre-processing like converting the message to an embedding.
 
 Messages pass back through the layers in the opposite direction after being handled by the capability. This allows for other patterns like checking the response for undesirable content before sending it back to the user.
 
@@ -77,9 +76,9 @@ pub trait Layer {
 ```
 
 **4. Capability Scoring:**
-Capabilities are the parts of the application that respond to the user. They provide an interface that allows them to implement a check function that returns a score for how well they can handle a message and an execute function that returns a response message. This allows for multiple capabilities to be registered and for the best one to be selected for each message.
+capabilities are the parts of the application that respond to the user. They provide an interface that allows them to implement a check function that returns a score for how well they can handle a message and an execute function that returns a response message. This allows for multiple capabilities to be registered and for the best one to be selected for each message.
 
-Allowing the capabilites to calculate their own score allows for simple capabilities
+Allowing the capabilities to calculate their own score allows for simple capabilities
 that, for example do an exact match on a command, to be registered alongside more complex capabilities that use machine learning to determine if they can handle a message.
 
 ```rust
@@ -91,5 +90,3 @@ pub trait Capability {
 
 Each capability must be able to provide a score indicating how well it can handle a given `RequestMessage`. This allows the system to intelligently route requests to the most appropriate capability.
 
-**5. Message Embedding:**
-To enhance the system's intelligence, `RequestMessage`s may be converted into a text or data embedding. This allows for more sophisticated routing and handling of requests, such as using machine learning models.
