@@ -1,13 +1,25 @@
 # Layer-Capability Pattern
-A new design pattern for Extended Intelligence Systems
 
-The Layer-Capability Pattern is a fresh approach to constructing Extended Intelligence systems, with a focus on simplicity, flexibility, and scalability. It's particularly suitable for systems where a user provides input and anticipates an output.
+**A new design pattern for Extended Intelligence Systems**
 
-The concept is rooted in the idea of Structured Intelligence. While large language models are indeed capable, their performance is probabilistic and they have their limitations. By structuring the data and capabilities of the system, we can build a system that exhibits more intelligence than the sum of its components.
+The Layer-Capability Pattern is an architectural approach designed for constructing Extended Intelligence systems, prioritizing simplicity, flexibility, and scalability. It is particularly effective for interactive systems, where user inputs require intelligent responses.
+
+## Introduction
+
+While Large Language Models (LLMs) are powerful, their probabilistic nature introduces limitations. The Layer-Capability Pattern addresses these limitations by structuring interactions within the system, enabling more intelligent and reliable outcomes than any component alone could achieve.
 
 ## Overview
 
-User messages originate from an external interface or REPL, converted into a RequestMessage, and are passed to a handler. The handler, in turn, sends the message through a series of layers. Each layer has the power to either reject the message entirely or alter it and forward it to the next layer. The final layer, a capability selector, chooses the capability to process the message. The selected capability is then executed, producing a ResponseMessage that is sent back through the layers, the handler, and eventually to the origin interface.
+The Layer-Capability Pattern organizes interactions as follows:
+
+1. A user submits a message via an interface or REPL.
+2. This message is converted into a structured `RequestMessage`.
+3. The request passes sequentially through multiple layers, each capable of modifying or rejecting the request.
+4. The final layer (Capability Selector) evaluates available capabilities to determine the best fit.
+5. The selected capability processes the request, returning a structured `ResponseMessage`.
+6. The response traverses back through layers, potentially undergoing post-processing before returning to the user.
+
+### Interaction Diagrams
 
 ```mermaid
 sequenceDiagram
@@ -30,63 +42,145 @@ sequenceDiagram
     L ->> H: ResponseMessage
     H ->> M: ResponseMessage
     M ->> I: ResponseMessage
-    I ->> U: ResponseMessage
 ```
-
-
-
 
 ```mermaid
 graph LR
-M[Main] -- RequestMessage --> H[Handler] 
-H --> L["Layers(n)"]
-L --> CSL[Capability Selector Layer]
-
-CSL -- "check()"--> C[Capability]
-
-CSL -- "check()" --> C2[Selected Capability]
-C2 -->CSL
-
-CSL -- "check()" --> C3[Capability]
-
-CSL -- "execute()" --> C2
-
-CSL --> L
-L --> H
-H -- ResponseMessage --> M
+M[Main] -->|RequestMessage| H[Handler] 
+H -->|RequestMessage| L[Layers] 
+L -->|RequestMessage| CSL[Capability Selector Layer]
+CSL -->|check| C[Capability]
+CSL -->|check| C2[Selected Capability]
+CSL -->|execute| C2
+C2 -->|ResponseMessage| CSL
+CSL -->|ResponseMessage| L
+L -->|ResponseMessage| H
+H -->|ResponseMessage| M
 ```
 
-## Principles
+## Core Principles
 
-**1. Request-Response Pattern (Universal Message Format):**
-All interactions within the system abide by a request-response model. Every component, whether a layer or a capability must be able to accept a RequestMessage and return a ResponseMessage.
+### 1. Request-Response Pattern
 
-**2. Capability Registration and Discovery:**
-Each capability must register itself with a central registry, providing details about its capabilities. This registry is then used by the capability selector layer to determine which capability is best suited to handle a given message.
+All interactions follow a universal Request-Response format:
 
-**3. Layered Pre and Post Processing:**
-Before RequestMessages reach the capabilities, they undergo a series of transformations through various layers. Each layer can either reject the message entirely or modify it and pass it to the next layer. This allows for things like security by rejecting unregistered users, adding memory to the system by storing Request and Response messages or even doing pre-processing like converting the message to an embedding.
+- Components accept a `RequestMessage` and return a `ResponseMessage`.
 
-Messages pass back through the layers in the opposite direction after being handled by the capability. This allows for other patterns like checking the response for undesirable content before sending it back to the user.
+### 2. Capability Registration and Discovery
 
-```rust
-pub trait Layer {
-    async fn execute(&mut self, message: &RequestMessage) -> RequestMessage;
+Capabilities self-register with a central registry, providing descriptions and handling logic to aid selection.
+
+### 3. Layered Pre and Post Processing
+
+Layers sequentially process messages, enabling:
+
+- Security enforcement (authentication, validation)
+- Memory storage for context
+- Pre-processing (e.g., converting messages to embeddings)
+- Post-processing (e.g., filtering inappropriate responses)
+
+```typescript
+interface Layer extends Cortex {
+    tell(message: RequestMessage): Promise<Result<void>>;
 }
 ```
 
-**4. Capability Scoring:**
-capabilities are the parts of the application that respond to the user. They provide an interface that allows them to implement a check function that returns a score for how well they can handle a message and an execute function that returns a response message. This allows for multiple capabilities to be registered and for the best one to be selected for each message.
+### 4. Capability Scoring
 
-Allowing the capabilities to calculate their own score allows for simple capabilities
-that, for example do an exact match on a command, to be registered alongside more complex capabilities that use machine learning to determine if they can handle a message.
+Capabilities dynamically determine their suitability for handling requests by scoring messages:
 
-```rust
-pub trait Capability {
-    async fn check(&mut self, message: &RequestMessage) -> f32;
-    async fn execute(&mut self, message: &RequestMessage) -> ResponseMessage;
+- Simple capabilities can perform exact-match scoring.
+- Complex capabilities use ML-based scoring methods.
+
+```typescript
+interface Capability extends Cortex {
+    check(message: RequestMessage): Promise<number>;
+    tell(message: RequestMessage): Promise<Result<void>>;
 }
 ```
 
-Each capability must be able to provide a score indicating how well it can handle a given `RequestMessage`. This allows the system to intelligently route requests to the most appropriate capability.
+## Advanced Features
+
+The Layer-Capability Pattern supports advanced functionalities to enhance robustness and flexibility:
+
+### 5. Language Model Integration
+
+The pattern supports integration with multiple language model providers, optimizing model selection:
+
+```typescript
+enum LanguageModelType {
+    GPT4 = "gpt-4",
+    ChatGPT = "chatgpt-4o-latest",
+    Llama32 = "llama3.2",
+    DeepSeek = "deepseek-r1"
+}
+```
+
+Selection considers:
+- Server health
+- Model capabilities and requirements
+- Performance and fallback strategies
+
+### 6. Consistent Error Handling with Results Pattern
+
+A unified error-handling strategy simplifies complexity:
+
+```typescript
+type Result<T> = {
+    ok: (value: T) => Result<T>;
+    err: (error: Error) => Result<T>;
+}
+```
+
+Benefits:
+- Simplifies error propagation
+- Reduces boilerplate code
+
+### 7. Observability and Tracing
+
+Comprehensive monitoring is built-in:
+- Span-based tracing
+- Performance timings
+- Detailed metadata for debugging
+
+Enables:
+- Real-time monitoring
+- Optimized performance
+- Efficient troubleshooting
+
+### 8. Two-Stage Capability Selection
+
+The capability selection employs a two-stage process:
+
+1. **Score-based Selection:**
+   - Capabilities return scores (1.0: perfect, -1.0: unsuitable)
+   - Immediate selection for high-scoring capabilities (>0.5)
+
+2. **AI-based Selection (Fallback):**
+   - LLM-driven selection based on capability descriptions if no high-scoring match is found
+
+## Message-Based Architecture
+
+The Layer-Capability Pattern employs a flexible, message-based architecture, defined by the core `Cortex` interface:
+
+```typescript
+interface Cortex {
+    tell(req: RequestMessage): Promise<Result<void>>;
+}
+```
+
+This architecture supports:
+- **Bidirectional Communication:** Layers and capabilities independently communicate responses.
+- **Asynchronous Operations:** Components can respond without waiting for sequential completion.
+- **Event-Driven Interactions:** Dynamic responses based on internal logic.
+- **Flexible Routing:** Adaptive message routing based on context.
+
+This flexibility enables advanced interaction patterns such as:
+- Streaming responses
+- Parallel request handling
+- Proactive notifications and multi-response interactions
+
+## Conclusion
+
+The Layer-Capability Pattern provides a robust foundation for developing intelligent, flexible, and scalable systems, effectively leveraging both structured logic and probabilistic language models to enhance user interactions.
 
